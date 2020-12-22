@@ -55,6 +55,29 @@ class Structs
         return is_iterable($subject) || is_object($subject);
     }
 
+    /**
+     * Recursivly convert associative arrays to objects.
+     * @param mixed $subject Subject to convert
+     * @return mixed Converted result
+     */
+    public function toObject($subject)
+    {
+        if ($this->isAssociative($subject)) {
+            $subject = (object)$subject;
+        }
+        if ($this->isWalkable($subject)) {
+            array_walk($subject, function ($content, $key) use (&$subject) {
+                if ($this->isWalkable($content)) {
+                    if (is_array($subject)) {
+                        $subject[$key] = $this->toObject($content);
+                    } else {
+                        $subject->$key = $this->toObject($content);
+                    }
+                }
+            });
+        }
+        return $subject;
+    }
 
     // Evalute if combination should overwrite
     private function isOverwrite($a, $b): bool

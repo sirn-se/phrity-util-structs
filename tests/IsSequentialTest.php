@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace Phrity\Util;
 
-use Phrity\Util\Structs;
+use Mock\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -36,7 +36,9 @@ class IsSequentialTest extends TestCase
         $this->assertFalse($structs->isSequential(23));
         $this->assertFalse($structs->isSequential('Hello string'));
         $this->assertFalse($structs->isSequential(null));
+        $this->assertFalse($structs->isAssociative((object)['a' => 1, 'b' => 2]));
         $this->assertFalse($structs->isSequential(new stdClass()));
+        $this->assertFalse($structs->isSequential(new MockObject()));
     }
 
     /**

@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace Phrity\Util;
 
-use Phrity\Util\Structs;
+use Mock\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -54,12 +54,12 @@ class IsWalkableTest extends TestCase
     /**
      * Test object input
      */
-    public function testSequential(): void
+    public function testObject(): void
     {
         $structs = new Structs();
 
         $this->assertTrue($structs->isWalkable(new stdClass()));
-        $this->assertTrue($structs->isWalkable((object)[1, 2, 3]));
-        $this->assertTrue($structs->isWalkable(new Structs()));
+        $this->assertTrue($structs->isWalkable((object)['a' => 1, 'b' => 2]));
+        $this->assertTrue($structs->isWalkable(new MockObject()));
     }
 }

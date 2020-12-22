@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace Phrity\Util;
 
-use Phrity\Util\Structs;
+use Mock\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -36,7 +36,9 @@ class IsAssociativeTest extends TestCase
         $this->assertFalse($structs->isAssociative(23));
         $this->assertFalse($structs->isAssociative('Hello string'));
         $this->assertFalse($structs->isAssociative(null));
+        $this->assertFalse($structs->isAssociative((object)['a' => 1, 'b' => 2]));
         $this->assertFalse($structs->isAssociative(new stdClass()));
+        $this->assertFalse($structs->isAssociative(new MockObject()));
     }
 
     /**
