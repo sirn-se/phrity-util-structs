@@ -79,6 +79,71 @@ class Structs
         return $subject;
     }
 
+    /**
+     * Recursivly merge two or more data structures
+     * @param mixed $subjects Subjects to convert
+     * @return mixed Merge result
+     */
+    public function merge(...$subjects)
+    {
+        $result = array_shift($subjects);
+        foreach ($subjects as $subject) {
+            if ($this->isOverwrite($result, $subject)) {
+                $result = $subject;
+            } elseif (is_object($subject)) {
+                $result = $this->mergeObjects($result, $subject);
+            } elseif (is_array($subject)) {
+                $result = $this->mergeArrays($result, $subject);
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Recursive merge two objects
+     * @param object $a Object to merge into
+     * @param object $b Object to merge from
+     * @return object Merge result
+     */
+    private function mergeObjects(object $a, object $b): object
+    {
+        if (is_object($b)) {
+            $b = get_object_vars($b); // Only public properties are merges
+        }
+        array_walk($b, function ($content, $key) use ($a) {
+            if (!isset($a->$key) || $this->isOverwrite($a->$key, $content)) {
+                $a->$key = $content;
+            } elseif (is_object($content)) {
+                $a->$key = $this->mergeObjects($a->$key, $content);
+            } elseif (is_array($content)) {
+                $a->$key = $this->mergeArrays($a->$key, $content);
+            }
+        });
+        return $a;
+    }
+
+    /**
+     * Recursive merge two arrays
+     * @param array $a Array to merge into
+     * @param array $b Array to merge from
+     * @return array Merge result
+     */
+    private function mergeArrays(array $a, array $b): array
+    {
+        array_walk($b, function ($content, $key) use (&$a) {
+            if (is_int($key)) {
+                $a = array_merge($a, [$content]);
+            } elseif (!isset($a[$key]) || $this->isOverwrite($a[$key], $content)) {
+                $a[$key] = $content;
+            } elseif (is_object($content)) {
+                $a[$key] = $this->mergeObjects($a[$key], $content);
+            } elseif (is_array($content)) {
+                $a[$key] = $this->mergeArrays($a[$key], $content);
+            }
+        });
+        return $a;
+    }
+
     // Evalute if combination should overwrite
     private function isOverwrite($a, $b): bool
     {

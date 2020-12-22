@@ -73,7 +73,7 @@ class ToObjectTest extends TestCase
     }
 
     /**
-     * Test recusive conversion
+     * Test recursive conversion
      */
     public function testRecursion(): void
     {
