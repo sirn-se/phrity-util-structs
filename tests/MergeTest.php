@@ -114,88 +114,144 @@ class MergeTest extends TestCase
         $structs = new Structs();
 
         $data1 = (object)[
-          'my_string' => 'Hello string',
-          'my_int' => 23,
-          'my_object' => (object)[
-              'a' => 1,
-              'b' => 2,
-              'obj' => (object)['aa' => 1, 'bb' => 2],
-              'seq' => [1, 2],
-              'ass' => ['aa' => 1, 'bb' => 2],
-          ],
-          'my_seq_array' => [
-              1,
-              2,
-              (object)['aa' => 1, 'bb' => 2],
-              [1, 3],
-              ['aa' => 1, 'bb' => 2],
-          ],
-          'my_ass_array' => [
-              'a' => 1,
-              'b' => 2,
-              'obj' => (object)['aa' => 1, 'bb' => 2],
-              'seq' => [1, 2],
-              'ass' => ['aa' => 1, 'bb' => 2],
-          ],
+            'my_string' => 'Hello string',
+            'my_int' => 23,
+            'my_object' => (object)[
+                'a' => 1,
+                'b' => 2,
+                'obj' => (object)['aa' => 1, 'bb' => 2],
+                'seq' => [1, 2],
+                'ass' => ['aa' => 1, 'bb' => 2],
+            ],
+            'my_seq_array' => [
+                1,
+                2,
+                (object)['aa' => 1, 'bb' => 2],
+                [1, 3],
+                ['aa' => 1, 'bb' => 2],
+            ],
+            'my_ass_array' => [
+                'a' => 1,
+                'b' => 2,
+                'obj' => (object)['aa' => 1, 'bb' => 2],
+                'seq' => [1, 2],
+                'ass' => ['aa' => 1, 'bb' => 2],
+            ],
         ];
         $data2 = (object)[
-          'my_string' => 'I will replace you',
-          'my_null' => null,
-          'my_object' => (object)[
-              'b' => 22,
-              'c' => 3,
-              'obj' => (object)['bb' => 22, 'cc' => 3],
-              'seq' => [1, 4],
-              'ass' => ['bb' => 22, 'cc' => 3],
-          ],
-          'my_seq_array' => [
-              1,
-              3,
-              (object)['bb' => 22, 'cc' => 3],
-              [1, 3],
-              ['bb' => 22, 'cc' => 3],
-          ],
-          'my_ass_array' => [
-              'b' => 22,
-              'c' => 3,
-              'obj' => (object)['bb' => 22, 'cc' => 3],
-              'seq' => [1, 3],
-              'ass' => ['bb' => 22, 'cc' => 3],
-          ],
+            'my_string' => 'I will replace you',
+            'my_null' => null,
+            'my_object' => (object)[
+                'b' => 22,
+                'c' => 3,
+                'obj' => (object)['bb' => 22, 'cc' => 3],
+                'seq' => [1, 4],
+                'ass' => ['bb' => 22, 'cc' => 3],
+            ],
+            'my_seq_array' => [
+                1,
+                3,
+                (object)['bb' => 22, 'cc' => 3],
+                [1, 3],
+                ['bb' => 22, 'cc' => 3],
+            ],
+            'my_ass_array' => [
+                'b' => 22,
+                'c' => 3,
+                'obj' => (object)['bb' => 22, 'cc' => 3],
+                'seq' => [1, 3],
+                'ass' => ['bb' => 22, 'cc' => 3],
+            ],
         ];
         $expected = (object)[
-          'my_string' => 'I will replace you',
-          'my_int' => 23,
-          'my_null' => null,
-          'my_object' => (object)[
-              'a' => 1,
-              'b' => 22,
-              'c' => 3,
-              'obj' => (object)['aa' => 1, 'bb' => 22, 'cc' => 3],
-              'seq' => [1, 2, 1, 4],
-              'ass' => ['aa' => 1, 'bb' => 22, 'cc' => 3],
-          ],
-          'my_seq_array' => [
-              1,
-              2,
-              (object)['aa' => 1, 'bb' => 2],
-              [1, 3],
-              ['aa' => 1, 'bb' => 2],
-              1,
-              3,
-              (object)['bb' => 22, 'cc' => 3],
-              [1, 3],
-              ['bb' => 22, 'cc' => 3],
-          ],
-          'my_ass_array' => [
-              'a' => 1,
-              'b' => 22,
-              'c' => 3,
-              'obj' => (object)['aa' => 1, 'bb' => 22, 'cc' => 3],
-              'seq' => [1, 2, 1, 3],
-              'ass' => ['aa' => 1, 'bb' => 22, 'cc' => 3],
-          ],
+            'my_string' => 'I will replace you',
+            'my_int' => 23,
+            'my_null' => null,
+            'my_object' => (object)[
+                'a' => 1,
+                'b' => 22,
+                'c' => 3,
+                'obj' => (object)['aa' => 1, 'bb' => 22, 'cc' => 3],
+                'seq' => [1, 2, 1, 4],
+                'ass' => ['aa' => 1, 'bb' => 22, 'cc' => 3],
+            ],
+            'my_seq_array' => [
+                1,
+                2,
+                (object)['aa' => 1, 'bb' => 2],
+                [1, 3],
+                ['aa' => 1, 'bb' => 2],
+                1,
+                3,
+                (object)['bb' => 22, 'cc' => 3],
+                [1, 3],
+                ['bb' => 22, 'cc' => 3],
+            ],
+            'my_ass_array' => [
+                'a' => 1,
+                'b' => 22,
+                'c' => 3,
+                'obj' => (object)['aa' => 1, 'bb' => 22, 'cc' => 3],
+                'seq' => [1, 2, 1, 3],
+                'ass' => ['aa' => 1, 'bb' => 22, 'cc' => 3],
+            ],
         ];
         $this->assertEquals($expected, $structs->merge($data1, $data2));
+        $this->assertEquals(
+            (object)[
+                'my_string' => 'Hello string',
+                'my_int' => 23,
+                'my_object' => (object)[
+                    'a' => 1,
+                    'b' => 2,
+                    'obj' => (object)['aa' => 1, 'bb' => 2],
+                    'seq' => [1, 2],
+                    'ass' => ['aa' => 1, 'bb' => 2],
+                ],
+                'my_seq_array' => [
+                    1,
+                    2,
+                    (object)['aa' => 1, 'bb' => 2],
+                    [1, 3],
+                    ['aa' => 1, 'bb' => 2],
+                ],
+                'my_ass_array' => [
+                    'a' => 1,
+                    'b' => 2,
+                    'obj' => (object)['aa' => 1, 'bb' => 2],
+                    'seq' => [1, 2],
+                    'ass' => ['aa' => 1, 'bb' => 2],
+                ],
+            ],
+            $data1
+        );
+        $this->assertEquals(
+            (object)[
+                'my_string' => 'I will replace you',
+                'my_null' => null,
+                'my_object' => (object)[
+                    'b' => 22,
+                    'c' => 3,
+                    'obj' => (object)['bb' => 22, 'cc' => 3],
+                    'seq' => [1, 4],
+                    'ass' => ['bb' => 22, 'cc' => 3],
+                ],
+                'my_seq_array' => [
+                    1,
+                    3,
+                    (object)['bb' => 22, 'cc' => 3],
+                    [1, 3],
+                    ['bb' => 22, 'cc' => 3],
+                ],
+                'my_ass_array' => [
+                    'b' => 22,
+                    'c' => 3,
+                    'obj' => (object)['bb' => 22, 'cc' => 3],
+                    'seq' => [1, 3],
+                    'ass' => ['bb' => 22, 'cc' => 3],
+                ],
+            ],
+            $data2
+        );
     }
 }

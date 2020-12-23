@@ -14,6 +14,8 @@ namespace Phrity\Util;
  */
 class Structs
 {
+    /* ---------- State evaluation methods ------------------------------------------- */
+
     /**
      * If provided subject is an associative array (not only integer indexes).
      * @param mixed $subject Subject to check
@@ -24,7 +26,7 @@ class Structs
         if (!is_array($subject)) {
             return false;
         }
-        foreach ($subject as $key => $content) {
+        foreach (array_keys($subject) as $key) {
             if (!is_int($key)) {
                 return true;
             }
@@ -33,7 +35,7 @@ class Structs
     }
 
     /**
-     * If provided subject is a sequential array (stricly sequential integer indexes)
+     * If provided subject is a sequential array (stricly sequential integer indexes).
      * @param mixed $subject Subject to check
      * @return bool
      */
@@ -46,7 +48,7 @@ class Structs
     }
 
     /**
-     * If provided subject is valid for array_walk function
+     * If provided subject is valid for array_walk function.
      * @param mixed $subject Subject to check
      * @return bool
      */
@@ -54,6 +56,9 @@ class Structs
     {
         return is_iterable($subject) || is_object($subject);
     }
+
+
+    /* ---------- Conversion methods ------------------------------------------------- */
 
     /**
      * Recursivly convert associative arrays to objects.
@@ -79,8 +84,11 @@ class Structs
         return $subject;
     }
 
+
+    /* ---------- Data set methods --------------------------------------------------- */
+
     /**
-     * Recursivly merge two or more data structures
+     * Recursivly merge two or more data sets.
      * @param mixed $subjects Subjects to convert
      * @return mixed Merge result
      */
@@ -100,13 +108,80 @@ class Structs
     }
 
     /**
-     * Recursive merge two objects
+     * Recursivly filter a data set.
+     * @param mixed $subject Subject to filter
+     * @param callable|null $callback The callback function to use
+     * @param int $mode Flag determining what arguments are sent to callback
+     * @return mixed Filter result
+     */
+    public function filter($subject, callable $callback = null, int $mode = 0)
+    {
+        $evaluator = function ($key, $value) use ($callback, $mode) {
+            if (is_null($callback)) {
+                if (is_object($value)) {
+                    $value = get_object_vars($value);
+                }
+                return !empty($value);
+            }
+            switch ($mode) {
+                case ARRAY_FILTER_USE_KEY:
+                    return $callback($key);
+                case ARRAY_FILTER_USE_BOTH:
+                    return $callback($value, $key);
+                default:
+                    return $callback($value);
+            }
+        };
+        return $this->filterImpl($subject, $evaluator);
+    }
+
+
+    /* ---------- Private helper methods --------------------------------------------- */
+
+    /**
+     * Recursive filter.
+     * @param mixed $subject Subject to filter
+     * @param callable $evaluator Filter method to apply
+     * @return mixed Filter result
+     */
+    private function filterImpl($subject, callable $evaluator)
+    {
+        if ($this->isWalkable($subject)) {
+            if (is_object($subject)) {
+                $subject = clone $subject;
+            }
+            array_walk($subject, function ($content, $key) use (&$subject, $evaluator) {
+                if (is_array($subject)) {
+                    $content = $this->filterImpl($content, $evaluator);
+                    $subject[$key] = $content;
+                } elseif (is_object($subject)) {
+                    $content = $this->filterImpl($content, $evaluator);
+                    $subject->$key = $content;
+                }
+                if ($evaluator($key, $content)) {
+                    return;
+                }
+                if (is_array($subject)) {
+                    unset($subject[$key]);
+                } elseif (is_object($subject)) {
+                    unset($subject->$key);
+                }
+            });
+        }
+        return $subject;
+    }
+
+    /**
+     * Recursive merge two objects.
      * @param object $a Object to merge into
      * @param object $b Object to merge from
      * @return object Merge result
      */
     private function mergeObjects(object $a, object $b): object
     {
+        if (is_object($a)) {
+            $a = clone $a;
+        }
         if (is_object($b)) {
             $b = get_object_vars($b); // Only public properties are merges
         }
@@ -123,7 +198,7 @@ class Structs
     }
 
     /**
-     * Recursive merge two arrays
+     * Recursive merge two arrays.
      * @param array $a Array to merge into
      * @param array $b Array to merge from
      * @return array Merge result
@@ -144,7 +219,12 @@ class Structs
         return $a;
     }
 
-    // Evalute if combination should overwrite
+    /**
+     * Evalute if combination should overwrite.
+     * @param mixed $a To comare
+     * @param mixed $b To comare with
+     * @return bool True if should overwrite
+     */
     private function isOverwrite($a, $b): bool
     {
         return is_scalar($a) || is_scalar($b) || gettype($a) !== gettype($b);
