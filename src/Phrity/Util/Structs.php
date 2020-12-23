@@ -47,16 +47,6 @@ class Structs
         return $subject === [] || array_keys($subject) === range(0, count($subject) - 1);
     }
 
-    /**
-     * If provided subject is valid for array_walk function.
-     * @param mixed $subject Subject to check
-     * @return bool
-     */
-    public function isWalkable($subject): bool
-    {
-        return is_iterable($subject) || is_object($subject);
-    }
-
 
     /* ---------- Conversion methods ------------------------------------------------- */
 
@@ -70,17 +60,13 @@ class Structs
         if ($this->isAssociative($subject)) {
             $subject = (object)$subject;
         }
-        if ($this->isWalkable($subject)) {
-            array_walk($subject, function ($content, $key) use (&$subject) {
-                if ($this->isWalkable($content)) {
-                    if (is_array($subject)) {
-                        $subject[$key] = $this->toObject($content);
-                    } else {
-                        $subject->$key = $this->toObject($content);
-                    }
-                }
-            });
-        }
+        $this->walk($subject, function ($content, $key) use (&$subject) {
+            if (is_array($subject)) {
+                $subject[$key] = $this->toObject($content);
+            } elseif (is_object($subject)) {
+                $subject->$key = $this->toObject($content);
+            }
+        });
         return $subject;
     }
 
@@ -89,7 +75,7 @@ class Structs
 
     /**
      * Recursivly merge two or more data sets.
-     * @param mixed $subjects Subjects to convert
+     * @param mixed $subjects Subjects to merge
      * @return mixed Merge result
      */
     public function merge(...$subjects)
@@ -108,6 +94,15 @@ class Structs
     }
 
     /**
+     * Recursivly diff two or more data sets.
+     * @param mixed $subjects Subjects to diff
+     * @return mixed Diff result
+     */
+    public function diff(...$subjects)
+    {
+    }
+
+    /**
      * Recursivly filter a data set.
      * @param mixed $subject Subject to filter
      * @param callable|null $callback The callback function to use
@@ -116,13 +111,16 @@ class Structs
      */
     public function filter($subject, callable $callback = null, int $mode = 0)
     {
+        // Create evaluation handler
         $evaluator = function ($key, $value) use ($callback, $mode) {
+            // Default filter; remove empty scalars, arrays and objects
             if (is_null($callback)) {
                 if (is_object($value)) {
                     $value = get_object_vars($value);
                 }
                 return !empty($value);
             }
+            // Filter provided as callback; call according to flag
             switch ($mode) {
                 case ARRAY_FILTER_USE_KEY:
                     return $callback($key);
@@ -132,44 +130,36 @@ class Structs
                     return $callback($value);
             }
         };
+        // Run filter implementation method
         return $this->filterImpl($subject, $evaluator);
     }
 
 
-    /* ---------- Private helper methods --------------------------------------------- */
+    /* ---------- Traverse methods --------------------------------------------------- */
 
     /**
-     * Recursive filter.
-     * @param mixed $subject Subject to filter
-     * @param callable $evaluator Filter method to apply
-     * @return mixed Filter result
+     * Walk subject.
+     * @param mixed $subject Subject to walk
+     * @param callable $callback The callback function to use
+     * @return bool True
      */
-    private function filterImpl($subject, callable $evaluator)
+    public function walk($subject, callable $callback)
     {
-        if ($this->isWalkable($subject)) {
-            if (is_object($subject)) {
-                $subject = clone $subject;
-            }
-            array_walk($subject, function ($content, $key) use (&$subject, $evaluator) {
-                if (is_array($subject)) {
-                    $content = $this->filterImpl($content, $evaluator);
-                    $subject[$key] = $content;
-                } elseif (is_object($subject)) {
-                    $content = $this->filterImpl($content, $evaluator);
-                    $subject->$key = $content;
-                }
-                if ($evaluator($key, $content)) {
-                    return;
-                }
-                if (is_array($subject)) {
-                    unset($subject[$key]);
-                } elseif (is_object($subject)) {
-                    unset($subject->$key);
-                }
-            });
+        if (is_iterable($subject)) {
+            // Arrays and objects that implement Traversable
+            $walk = $subject;
+        } elseif (is_object($subject)) {
+            // Other objects, only walk public properties
+            $walk = get_object_vars($subject);
+        } else {
+            // Not something we can walk
+            return true;
         }
-        return $subject;
+        return array_walk($walk, $callback);
     }
+
+
+    /* ---------- Private helper methods --------------------------------------------- */
 
     /**
      * Recursive merge two objects.
@@ -179,13 +169,13 @@ class Structs
      */
     private function mergeObjects(object $a, object $b): object
     {
+        if ($a == $b) {
+            return $a;
+        }
         if (is_object($a)) {
             $a = clone $a;
         }
-        if (is_object($b)) {
-            $b = get_object_vars($b); // Only public properties are merges
-        }
-        array_walk($b, function ($content, $key) use ($a) {
+        $this->walk($b, function ($content, $key) use ($a) {
             if (!isset($a->$key) || $this->isOverwrite($a->$key, $content)) {
                 $a->$key = $content;
             } elseif (is_object($content)) {
@@ -205,7 +195,10 @@ class Structs
      */
     private function mergeArrays(array $a, array $b): array
     {
-        array_walk($b, function ($content, $key) use (&$a) {
+        if ($a == $b) {
+            return $a;
+        }
+        $this->walk($b, function ($content, $key) use (&$a) {
             if (is_int($key)) {
                 $a = array_merge($a, [$content]);
             } elseif (!isset($a[$key]) || $this->isOverwrite($a[$key], $content)) {
@@ -217,6 +210,37 @@ class Structs
             }
         });
         return $a;
+    }
+
+    /**
+     * Recursive filter.
+     * @param mixed $subject Subject to filter
+     * @param callable $evaluator Filter method to apply
+     * @return mixed Filter result
+     */
+    private function filterImpl($subject, callable $evaluator)
+    {
+        if (is_object($subject)) {
+            $subject = clone $subject;
+        }
+        $this->walk($subject, function ($content, $key) use (&$subject, $evaluator) {
+            if (is_array($subject)) {
+                $content = $this->filterImpl($content, $evaluator);
+                $subject[$key] = $content;
+            } elseif (is_object($subject)) {
+                $content = $this->filterImpl($content, $evaluator);
+                $subject->$key = $content;
+            }
+            if ($evaluator($key, $content)) {
+                return;
+            }
+            if (is_array($subject)) {
+                unset($subject[$key]);
+            } elseif (is_object($subject)) {
+                unset($subject->$key);
+            }
+        });
+        return $subject;
     }
 
     /**

@@ -36,13 +36,7 @@ class MergeTest extends TestCase
         $this->assertEquals('I will replace you', $structs->merge('Hello string', 'I will replace you'));
         $this->assertEquals(23, $structs->merge(12, 9, 17, 23));
         $this->assertNull($structs->merge(12, 'Hello string', 17, null));
-
-        return;
-        $m1 = new MockObject();
-        $m2 = new MockObject();
-        $m2->hej = 'då';
-        $apa = $structs->mergeObjects($m1, $m2);
-        var_dump($apa);
+        $this->assertEquals(null, $structs->merge());
     }
 
     /**
@@ -254,4 +248,44 @@ class MergeTest extends TestCase
             $data2
         );
     }
+
+    /**
+     * Test merge cloning
+     */
+    public function testCloning(): void
+    {
+        $structs = new Structs();
+        $a = (object)['a' => 1, 'b' => 2];
+        $b1 = (object)['a' => 11, 'b' => 22];
+        $b2 = (object)['a' => 111, 'b' => 222];
+        $c = new MockObject();
+        $d1 = new MockObject();
+        $d2 = new MockObject();
+        $d2->my_public = 'overwrite';
+
+        $data1 = (object)[
+            'a' => $a,
+            'b' => $b1,
+            'c' => $c,
+            'd' => $d1,
+        ];
+        $data2 = (object)[
+            'a' => $a,
+            'b' => $b2,
+            'c' => $c,
+            'd' => $d2,
+        ];
+        $expect = (object)['a' => $a, 'b' => $b2, 'c' => $c, 'd' => $d2];
+        $result = $structs->merge($data1, $data2);
+        $this->assertEquals($expect, $result);
+        $this->assertNotSame($data1, $result);
+        $this->assertNotSame($data2, $result);
+        $this->assertSame($a, $result->a);
+        $this->assertNotSame($b1, $result->b);
+        $this->assertNotSame($b2, $result->b);
+        $this->assertSame($c, $result->c);
+        $this->assertNotSame($d1, $result->d);
+        $this->assertNotSame($d2, $result->d);
+    }
+
 }

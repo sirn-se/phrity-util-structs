@@ -36,6 +36,7 @@ class FilterTest extends TestCase
         $this->assertEquals('Hello string', $structs->filter('Hello string'));
         $this->assertEquals(23, $structs->filter(23));
         $this->assertNull($structs->filter(null));
+        $this->assertNull($structs->filter(null));
     }
 
     /**
