@@ -287,5 +287,4 @@ class MergeTest extends TestCase
         $this->assertNotSame($d1, $result->d);
         $this->assertNotSame($d2, $result->d);
     }
-
 }
