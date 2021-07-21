@@ -14,14 +14,14 @@ namespace Phrity\Util;
  */
 class Structs
 {
-    /* ---------- State evaluation methods ------------------------------------------- */
+    /* ---------- Type evaluation methods -------------------------------------------- */
 
     /**
      * If provided subject is an associative array (not only integer indexes).
      * @param mixed $subject Subject to check
      * @return bool
      */
-    public function isAssociative($subject): bool
+    public function isAssociativeArray($subject): bool
     {
         if (!is_array($subject)) {
             return false;
@@ -39,7 +39,7 @@ class Structs
      * @param mixed $subject Subject to check
      * @return bool
      */
-    public function isSequential($subject): bool
+    public function isSequentialArray($subject): bool
     {
         if (!is_array($subject)) {
             return false;
@@ -47,31 +47,200 @@ class Structs
         return $subject === [] || array_keys($subject) === range(0, count($subject) - 1);
     }
 
+    /**
+     * If is array and has requested key.
+     * @param mixed $key Array key to look for
+     * @param mixed $haystack Haystack to search
+     * @return bool
+     */
+    public function hasArrayKey($key, $haystack): bool
+    {
+        return is_array($haystack) && array_key_exists($key, $haystack);
+    }
+
+    /**
+     * If is object and has requested property.
+     * @param mixed $key Property to look for
+     * @param mixed $haystack Haystack to search
+     * @return bool
+     */
+    public function hasProperty($key, $haystack): bool
+    {
+        return is_object($haystack) && property_exists($haystack, $key);
+    }
+
+    /**
+     * If array contains value.
+     * @param mixed $needle Value to look for
+     * @param mixed $haystack Haystack to search
+     * @return bool
+     */
+    public function inArray($needle, $haystack): bool
+    {
+        if (!is_array($haystack)) {
+            return false;
+        }
+        if (is_object($needle)) {
+            $needle = (array)$needle;
+        }
+        foreach ($haystack as $item) {
+            if (is_object($item)) {
+                $item = (array)$item;
+            }
+            if ($item == $needle) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 
     /* ---------- Conversion methods ------------------------------------------------- */
 
     /**
-     * Recursivly convert associative arrays to objects.
+     * Converts input according to following rules;
+     *  - Scalars are returned as is
+     *  - Associative arrays are converted to objects
+     *  - Non-associative arrays enforces sequential index
+     *  - Objects returned as anonymous objects, only public properties
+     *  - Other input types always return null
      * @param mixed $subject Subject to convert
-     * @return mixed Converted result
+     * @return mixed Converted subject
      */
-    public function toObject($subject)
+    public function convert($subject)
     {
-        if ($this->isAssociative($subject)) {
-            $subject = (object)$subject;
+        if (is_scalar($subject)) {
+            return $subject;
         }
-        $this->walk($subject, function ($content, $key) use (&$subject) {
-            if (is_array($subject)) {
-                $subject[$key] = $this->toObject($content);
-            } elseif (is_object($subject)) {
-                $subject->$key = $this->toObject($content);
-            }
-        });
-        return $subject;
+        if ($this->isAssociativeArray($subject)) {
+            return (object)$subject;
+        }
+        if (is_array($subject)) {
+            return array_values($subject);
+        }
+        if (is_callable($subject)) {
+            return null;
+        }
+        if (is_object($subject)) {
+            return (object)get_object_vars($subject);
+        }
+        return null;
+    }
+
+    /**
+     * Recursivly apply convert().
+     * See convert() for conversion rules.
+     * @param mixed $subject Subject to convert
+     * @return mixed Converted subject
+     */
+    public function rConvert($subject)
+    {
+        return $this->map(function ($key, $content) {
+            return $this->rConvert($content);
+        }, $subject);
     }
 
 
-    /* ---------- Data set methods --------------------------------------------------- */
+    /* ---------- Intersection methods ----------------------------------------------- */
+
+    /**
+     * Intersect two inputs;
+     *  - Scalars are returned if equal
+     *  - Arrays return intersected content
+     *  - Objects return intersection of property name and content
+     *  - If any input is scalar and other is array, the scalar will be intersected on array
+     *  - Other input types always return null
+     * @param mixed $subject_a Subject to intersect
+     * @param mixed $subject_b other subject to intersect
+     * @return mixed Intersected subject
+     */
+    public function intersect($subject_a, $subject_b)
+    {
+        $subject_a = $this->convert($subject_a);
+        $subject_b = $this->convert($subject_b);
+
+        if ($subject_a === $subject_b) {
+            return $subject_a;
+        }
+        if (is_array($subject_a) && is_scalar($subject_b)) {
+            $subject_b = [$subject_b];
+        }
+        if (is_array($subject_b) && is_scalar($subject_a)) {
+            $subject_a = [$subject_a];
+        }
+        if (is_array($subject_a) && is_array($subject_b)) {
+            return array_values(array_filter($subject_a, function ($content) use ($subject_b) {
+                return $this->inArray($content, $subject_b);
+            }));
+        }
+        if (is_object($subject_a) && is_object($subject_b)) {
+            return (object)array_filter((array)$subject_a, function ($content, $key) use ($subject_b) {
+                return $this->hasProperty($key, $subject_b) && $content == $subject_b->$key;
+            }, ARRAY_FILTER_USE_BOTH);
+        }
+        return null;
+    }
+
+    /**
+     * Recursivly apply intersect().
+     * See intersect() for intersction rules.
+     * @param mixed $subject_a Subject to intersect
+     * @param mixed $subject_b other subject to intersect
+     * @return mixed Intersected subject
+     */
+    public function rIntersect($subject_a, $subject_b)
+    {
+        $subject = $this->intersect($subject_a, $subject_b);
+        $reverse = $this->intersect($subject_b, $subject_a);
+        return $this->map(function ($key, $content_a, $content_b) {
+            if (is_scalar($content_a)) {
+                return $content_a;
+            }
+            return $this->rIntersect($content_a, $content_b);
+        }, $subject, $reverse);
+    }
+
+
+    /* ---------- Traverse methods --------------------------------------------------- */
+
+    /**
+     * Applies the callback to the elements of the subject.
+     * @param mixed $subject Subject to map
+     * @param callable $callback The callback function to apply
+     * @return mixed Map result
+     */
+    public function map(callable $callback, $primary, $secondary = null)
+    {
+        $primary = $this->convert($primary);
+        $secondary = $this->convert($secondary);
+        if (is_array($primary)) {
+            array_walk($primary, function ($content, $key) use (&$primary, $secondary, $callback) {
+                $args = [$key, $content];
+                if (isset($secondary)) {
+                    $args[] = $this->hasArrayKey($key, $secondary) ? $secondary[$key] : null;
+                }
+                $primary[$key] = call_user_func_array($callback, $args);
+            });
+        } elseif (is_object($primary)) {
+            array_walk($primary, function ($content, $key) use (&$primary, $secondary, $callback) {
+                $args = [$key, $content];
+                if (isset($secondary)) {
+                    $args[] = $this->hasProperty($key, $secondary) ? $secondary->$key : null;
+                }
+                $primary->$key = call_user_func_array($callback, $args);
+            });
+        }
+        return $primary;
+    }
+
+
+
+
+
+
+
+    /* ---------- IN PROGRESS -------------------------------------------------------- */
 
     /**
      * Recursivly merge two or more data sets.
@@ -133,9 +302,6 @@ class Structs
         // Run filter implementation method
         return $this->filterImpl($subject, $evaluator);
     }
-
-
-    /* ---------- Traverse methods --------------------------------------------------- */
 
     /**
      * Walk subject.

@@ -11,7 +11,6 @@ namespace Phrity\Util;
 
 use Mock\MockObject;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 
 /**
  * Structs isSequential test class.
@@ -33,12 +32,11 @@ class IsSequentialTest extends TestCase
     {
         $structs = new Structs();
 
-        $this->assertFalse($structs->isSequential(23));
-        $this->assertFalse($structs->isSequential('Hello string'));
-        $this->assertFalse($structs->isSequential(null));
-        $this->assertFalse($structs->isAssociative((object)['a' => 1, 'b' => 2]));
-        $this->assertFalse($structs->isSequential(new stdClass()));
-        $this->assertFalse($structs->isSequential(new MockObject()));
+        $this->assertFalse($structs->isSequentialArray(23));
+        $this->assertFalse($structs->isSequentialArray('Hello string'));
+        $this->assertFalse($structs->isSequentialArray(null));
+        $this->assertFalse($structs->isSequentialArray((object)['a' => 1, 'b' => 2]));
+        $this->assertFalse($structs->isSequentialArray(new MockObject()));
     }
 
     /**
@@ -48,10 +46,10 @@ class IsSequentialTest extends TestCase
     {
         $structs = new Structs();
 
-        $this->assertFalse($structs->isSequential(['a' => 1, 'b' => 2]));
-        $this->assertFalse($structs->isSequential([1 => 'A', 2 => 'B', 3 => 'C']));
-        $this->assertFalse($structs->isSequential(['1' => 'A', 5.5 => 'B', 2 => 'C']));
-        $this->assertFalse($structs->isSequential([1, 2, 'a' => 3]));
+        $this->assertFalse($structs->isSequentialArray(['a' => 1, 'b' => 2]));
+        $this->assertFalse($structs->isSequentialArray([1 => 'A', 2 => 'B', 3 => 'C']));
+        $this->assertFalse($structs->isSequentialArray(['1' => 'A', 5.5 => 'B', 2 => 'C']));
+        $this->assertFalse($structs->isSequentialArray([1, 2, 'a' => 3]));
     }
 
     /**
@@ -61,8 +59,8 @@ class IsSequentialTest extends TestCase
     {
         $structs = new Structs();
 
-        $this->assertTrue($structs->isSequential([]));
-        $this->assertTrue($structs->isSequential([1, 2, 3]));
-        $this->assertTrue($structs->isSequential([0 => 'A', 1 => 'B', 2 => 'C']));
+        $this->assertTrue($structs->isSequentialArray([]));
+        $this->assertTrue($structs->isSequentialArray([1, 2, 3]));
+        $this->assertTrue($structs->isSequentialArray([0 => 'A', 1 => 'B', 2 => 'C']));
     }
 }

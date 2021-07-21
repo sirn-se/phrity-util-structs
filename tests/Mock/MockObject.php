@@ -14,7 +14,7 @@ namespace Mock;
  */
 class MockObject
 {
-    private $my_private = 'private';
-    protected $my_protected = 'protected';
-    public $my_public = 'private';
+    private $my_private = 'Private';
+    protected $my_protected = 'Protected';
+    public $my_public = 'Public';
 }
